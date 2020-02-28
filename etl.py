@@ -52,10 +52,10 @@ def process_log_data(spark, input_data, output_data):
     df = 
 
     # extract columns for users table    
-    artists_table = 
+    users_table = 
     
     # write users table to parquet files
-    artists_table
+    users_table
 
     # create timestamp column from original timestamp column
     get_timestamp = udf()
@@ -84,7 +84,7 @@ def process_log_data(spark, input_data, output_data):
 def main():
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
-    output_data = ""
+    output_data = "s3a://de-nano-project-4/output/"
     
     process_song_data(spark, input_data, output_data)    
     process_log_data(spark, input_data, output_data)
