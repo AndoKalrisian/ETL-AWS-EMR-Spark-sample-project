@@ -44,7 +44,7 @@ def process_song_data(spark, input_data, output_data):
 
     # write songs table to parquet files
     print("ETL.PY INFO::writing songs_table.parquet to S3")
-    songs_table.write.mode('overwrite').parquet(output_data + 'songs_table.parquet')
+    songs_table.write.mode('overwrite').partitionBy("year", "artist_id").parquet(output_data + 'songs_table.parquet')
 
     # write a local copy to be used for creating songplays table
     print("ETL.PY INFO::writing songs_table.parquet locally")
@@ -122,7 +122,7 @@ def process_log_data(spark, input_data, output_data):
     log_data = log_data.withColumn("ts", from_unixtime(log_data.ts / 1000))
     
     # update spark table view
-    log_data.createOrReplaceTempView("log_time_table")
+    log_data.createOrReplaceTempView("log_table")
 
     # extract columns to create time table (ts, hour, day, week, month, year, weekday)
     print("ETL.PY INFO::creating time_table")
@@ -133,7 +133,7 @@ def process_log_data(spark, input_data, output_data):
                                               date_format(ts, 'MM') AS month,
                                               date_format(ts, 'yyyy') AS year,
                                               date_format(ts, 'u') AS weekday 
-                              FROM log_time_table''')
+                              FROM log_table''')
     
     # write time table to parquet files partitioned by year and month
     print("ETL.PY INFO::writing time_table.parquet to S3")
@@ -152,10 +152,17 @@ def process_log_data(spark, input_data, output_data):
     # extract columns from joined song and log datasets to create songplays table 
     # (songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
     print("ETL.PY INFO::creating songplays_table")
-    songplays_table = spark.sql('''SELECT CONCAT(e.ts, '-', e.sessionId) AS songplay_id, e.ts AS start_time, e.userId AS user_id,
-                                        e.level AS level, sa.song_id AS song_id, 
-                                        sa.artist_id AS artist_id, e.sessionId AS session_id, 
-                                        e.location AS location, e.userAgent AS user_agent
+    songplays_table = spark.sql('''SELECT CONCAT(e.ts, '-', e.sessionId) AS songplay_id, 
+                                        e.ts AS start_time, 
+                                        date_format(e.ts, 'MM') AS month,
+                                        date_format(e.ts, 'yyyy') AS year,
+                                        e.userId AS user_id,
+                                        e.level AS level, 
+                                        sa.song_id AS song_id, 
+                                        sa.artist_id AS artist_id, 
+                                        e.sessionId AS session_id, 
+                                        e.location AS location, 
+                                        e.userAgent AS user_agent
                                    FROM log_table AS e
                                    JOIN (
                                        SELECT s.song_id, a.artist_id, s.title, a.name, s.duration
@@ -170,7 +177,7 @@ def process_log_data(spark, input_data, output_data):
 
     # write songplays table to parquet files partitioned by year and month
     print("ETL.PY INFO::writing songplays_table.parquet to S3")
-    songplays_table.write.mode('overwrite').parquet(output_data + 'songplays_table.parquet')
+    songplays_table.write.mode('overwrite').partitionBy("year", "month").parquet(output_data + 'songplays_table.parquet')
 
 
 def main():
