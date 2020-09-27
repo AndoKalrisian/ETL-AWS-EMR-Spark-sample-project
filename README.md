@@ -1,4 +1,4 @@
-# de-nano-project-4
+# ETL on AWS EMR Cluster running pySpark
 
 ## Purpose
 
